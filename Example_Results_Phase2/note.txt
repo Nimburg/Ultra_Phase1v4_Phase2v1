@@ -1,0 +1,7 @@
+This is from 4 days' worth of data in early March, 2016.
+
+For clustering, the best parameter combination is:
+
+9 cluster centers
+for users, equal weights on all variables
+for tags, weight should be set to 3, thus 3 times more weight on degrees of users and tags
