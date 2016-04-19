@@ -7,6 +7,7 @@ This Project is written with:
 2. with standard libraries: JSON, Numpy, Pandas
 3. with pymysql for interfacing with MySQL
 4. require MySQL
+5. require sklearn, nltk for Phase2
 
 
 
