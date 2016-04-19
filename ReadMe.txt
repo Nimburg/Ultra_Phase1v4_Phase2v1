@@ -1,3 +1,5 @@
+Please note that Ultra_results_Interpretation.pdf is the introduction to project and interpretation of preliminary results.
+
 This project is seperated into two distinct phases. You should execute phase1v4 first, then use
 the results to perform phase2v1.
 
@@ -41,11 +43,3 @@ Stage3 is clustering for user and hash tags by:
 ./Phase2v1/src/Phase2_Stage4_ML_tagV2.py
 Again, you should specify your Database information
 You could adjust your clustering parameters in the above .py files.
-
-
-
-
-
-
-
-
