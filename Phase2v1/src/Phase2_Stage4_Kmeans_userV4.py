@@ -12,9 +12,7 @@ import matplotlib.pyplot as plt
 from sklearn.cluster import MiniBatchKMeans, KMeans
 from sklearn.metrics.pairwise import pairwise_distances_argmin
 from sklearn.datasets.samples_generator import make_blobs
-
-
-
+from sklearn.decomposition import PCA
 
 
 """
@@ -24,14 +22,14 @@ def Data_Extract():
 
 	#######################################################################
 
-	MySQL_DBkey2 = {'host':'localhost', 'user':'sa', 'password':'fanyu01', 'db':'ultra_v4_phase1_run2','charset':'utf8mb4'}
+	MySQL_DBkey2 = {'host':'localhost', 'user':'sa', 'password':'fanyu01', 'db':'poscd_ultra_phase1_run2','charset':'utf8mb4'}
 
 	# command
 	comd_Score_TH = "\
-	select tagText, Score1_LB, Score2_LB, Norm_totalCall, \
-	Norm_user_degree_abs, Norm_user_degree_ws, Norm_tag_degree_abs, Norm_tag_degree_ws\n\
-	from tagunique_all\n\
-	where Norm_totalCall >= -10 and Norm_user_degree_abs >= -10 and Norm_tag_degree_abs >= -10;\n"
+	select userID, Score1_LB, Score2_LB, Norm_totalAction, \
+	Norm_Muser_degree_abs, Norm_Muser_degree_ws, Norm_tag_degree_abs, Norm_tag_degree_ws\n\
+	from userunique_all\n\
+	where Norm_totalAction >= -10 and Norm_Muser_degree_abs >= -10 and Norm_tag_degree_abs >= -10;\n"
 
 	temp_data = [[],[],[],[],[],[],[],[]]
 
@@ -50,12 +48,12 @@ def Data_Extract():
 			# result is a list of dicts: {u'tagText': u'100yearsold'}
 			print "Finished extracting data"
 			for item in result:
-				temp_data[0].append( str(item['tagText']))
+				temp_data[0].append( str(item['userID']))
 				temp_data[1].append( float(item['Score1_LB']))
 				temp_data[2].append( float(item['Score2_LB']))
-				temp_data[3].append( float(item['Norm_totalCall']))
-				temp_data[4].append( float(item['Norm_user_degree_abs']))
-				temp_data[5].append( float(item['Norm_user_degree_ws']))
+				temp_data[3].append( float(item['Norm_totalAction']))
+				temp_data[4].append( float(item['Norm_Muser_degree_abs']))
+				temp_data[5].append( float(item['Norm_Muser_degree_ws']))
 				temp_data[6].append( float(item['Norm_tag_degree_abs']))
 				temp_data[7].append( float(item['Norm_tag_degree_ws']))	
 	finally:
@@ -78,7 +76,7 @@ def Gross_K_means(Data_list, n_clusters, n_init, max_iter, weight):
 	#n_init = 100
 	#max_iter = 100
 	# top 11 colors
-	colors = ['firebrick', 'red', 'orange', 'yellow','tan', 'green', 'skyblue', 'blue', 'violet', 'magenta','black']
+	colors = ['firebrick', 'orange', 'red', 'yellow','green', 'tan', 'skyblue', 'blue', 'violet', 'grey','magenta']
 
 	##############################################################################
 	# convert to numpy array
@@ -175,32 +173,6 @@ def Gross_K_means(Data_list, n_clusters, n_init, max_iter, weight):
 	Scores_cluster_centers = k_means.cluster_centers_
 	Scores_labels_unique = np.unique(Scores_labels)
 
-	# K-means with Scores and totalAction
-	print "K-means with Scores and totalAction"
-	k_means.fit(DataPoints[:,:3])
-
-	Scores_Actions_labels = k_means.labels_
-	Scores_Actions_cluster_centers = k_means.cluster_centers_
-	Scores_Actions_labels_unique = np.unique(Scores_Actions_labels)
-
-	# K-means with Scores and tag_degree_abs
-	print "K-means with Scores and tag_degree_abs"
-	index = [0,1,5]
-	k_means.fit(DataPoints[:,index])
-
-	Scores_tagDegree_labels = k_means.labels_
-	Scores_tagDegree_centers = k_means.cluster_centers_
-	Scores_tagDegree_unique = np.unique(Scores_tagDegree_labels)
-
-	# K-means with Scores and user_degree_abs
-	print "K-means with Scores and user_degree_abs"
-	index = [0,1,3]
-	k_means.fit(DataPoints[:,index])
-
-	Scores_userDegree_labels = k_means.labels_
-	Scores_userDegree_centers = k_means.cluster_centers_
-	Scores_userDegree_unique = np.unique(Scores_userDegree_labels)
-
 	# K-means with Scores and user_degree_abs and tag_degree_abs
 	print "K-means with Scores and user_degree_abs and tag_degree_abs"
 	index = [0,1,3,5]
@@ -214,17 +186,21 @@ def Gross_K_means(Data_list, n_clusters, n_init, max_iter, weight):
 	# We want to have the same colors for the same cluster from the
 	# MiniBatchKMeans and the KMeans algorithm. Let's pair the cluster centers per
 	# closest one.
-
-	order_SA = pairwise_distances_argmin(Scores_cluster_centers, Scores_Actions_cluster_centers[:,0:2])
-	order_ST = pairwise_distances_argmin(Scores_cluster_centers, Scores_tagDegree_centers[:,0:2])
-	order_SU = pairwise_distances_argmin(Scores_cluster_centers, Scores_userDegree_centers[:,0:2])
+	
 	order_STU = pairwise_distances_argmin(Scores_cluster_centers, Scores_bothDegree_centers[:,0:2])
 
 	print "\nScores_cluster_centers:\n ", Scores_cluster_centers
-	print "\nScores_Actions_cluster_centers:\n ", Scores_Actions_cluster_centers[order_SA]
-	print "\nScores_tagDegree_centers:\n ", Scores_tagDegree_centers[order_ST]
-	print "\nScores_userDegree_centers:\n ", Scores_userDegree_centers[order_SU]
 	print "\nScores_bothDegree_centers:\n ", Scores_bothDegree_centers[order_STU]
+
+	##############################################################################
+
+	##############################################################################
+
+	index = [0,1,3,5]
+
+	# PCA with Scores ONLY
+	pca = PCA(n_components=4)
+	X_r = pca.fit(DataPoints[:,index]).transform(DataPoints[:,index])
 
 	##############################################################################
 
@@ -238,63 +214,10 @@ def Gross_K_means(Data_list, n_clusters, n_init, max_iter, weight):
 	for k, col in zip(range(n_clusters), colors):
 		my_members = Scores_labels == k
 		cluster_center = Scores_cluster_centers[k]	
-		ax.plot(DataPoints[my_members, 0], DataPoints[my_members, 1], 'w',
-				markerfacecolor=col, marker='.')
-		ax.plot(cluster_center[0], cluster_center[1], 'o', markerfacecolor=col,
+		ax.plot(DataPoints[:, 0], DataPoints[:, 1], 'o', markerfacecolor='blue',
 				markeredgecolor='k', markersize=6)
 
-	ax.set_title('Clustering of Scores')
-	label_range = [i-2 for i in range(14)]
-	ax.set_xticks(label_range)
-	ax.set_xticklabels(label_range)
-	ax.set_yticks(label_range)
-	ax.set_yticklabels(label_range)	
-
-	# Scores and totalAction
-	ax = fig.add_subplot(2, 3, 2)
-	for k, col in zip(range(n_clusters), colors):
-		my_members = Scores_Actions_labels == order_SA[k]
-		cluster_center = Scores_Actions_cluster_centers[order_SA[k]]	
-		ax.plot(DataPoints[my_members, 0], DataPoints[my_members, 1], 'w',
-				markerfacecolor=col, marker='.')
-		ax.plot(cluster_center[0], cluster_center[1], 'o', markerfacecolor=col,
-				markeredgecolor='k', markersize=8)
-
-	ax.set_title('Scores and totalAction')
-	label_range = [i-2 for i in range(14)]
-	ax.set_xticks(label_range)
-	ax.set_xticklabels(label_range)
-	ax.set_yticks(label_range)
-	ax.set_yticklabels(label_range)	
-
-	# Scores and tag_degree
-	ax = fig.add_subplot(2, 3, 3)
-	for k, col in zip(range(n_clusters), colors):
-		my_members = Scores_tagDegree_labels == order_ST[k]
-		cluster_center = Scores_tagDegree_centers[order_ST[k]]	
-		ax.plot(DataPoints[my_members, 0], DataPoints[my_members, 1], 'w',
-				markerfacecolor=col, marker='.')
-		ax.plot(cluster_center[0], cluster_center[1], 'o', markerfacecolor=col,
-				markeredgecolor='k', markersize=6)
-
-	ax.set_title('Scores and tag_degree')
-	label_range = [i-2 for i in range(14)]
-	ax.set_xticks(label_range)
-	ax.set_xticklabels(label_range)
-	ax.set_yticks(label_range)
-	ax.set_yticklabels(label_range)	
-
-	# Scores and user_degree
-	ax = fig.add_subplot(2, 3, 4)
-	for k, col in zip(range(n_clusters), colors):
-		my_members = Scores_userDegree_labels == order_SU[k]
-		cluster_center = Scores_userDegree_centers[order_SU[k]]	
-		ax.plot(DataPoints[my_members, 0], DataPoints[my_members, 1], 'w',
-				markerfacecolor=col, marker='.')
-		ax.plot(cluster_center[0], cluster_center[1], 'o', markerfacecolor=col,
-				markeredgecolor='k', markersize=6)
-
-	ax.set_title('Scores and user_degree')
+	ax.set_title('Full Data Set, Score1 vs Score2')
 	label_range = [i-2 for i in range(14)]
 	ax.set_xticks(label_range)
 	ax.set_xticklabels(label_range)
@@ -302,16 +225,14 @@ def Gross_K_means(Data_list, n_clusters, n_init, max_iter, weight):
 	ax.set_yticklabels(label_range)	
 
 	# Scores and both_Degrees
-	ax = fig.add_subplot(2, 3, 5)
+	ax = fig.add_subplot(2, 3, 2)
 	for k, col in zip(range(n_clusters), colors):
 		my_members = Scores_bothDegree_labels == order_STU[k]
 		cluster_center = Scores_bothDegree_centers[order_STU[k]]	
-		ax.plot(DataPoints[my_members, 0], DataPoints[my_members, 1], 'w',
-				markerfacecolor=col, marker='.')
-		ax.plot(cluster_center[0], cluster_center[1], 'o', markerfacecolor=col,
+		ax.plot(DataPoints[my_members, 0], DataPoints[my_members, 1], 'o', markerfacecolor=col,
 				markeredgecolor='k', markersize=6)
 
-	ax.set_title('Scores and both_Degrees')
+	ax.set_title('K-Means by Scores & Degrees, Score1 vs Score2')
 	label_range = [i-2 for i in range(14)]
 	ax.set_xticks(label_range)
 	ax.set_xticklabels(label_range)
@@ -319,27 +240,41 @@ def Gross_K_means(Data_list, n_clusters, n_init, max_iter, weight):
 	ax.set_yticklabels(label_range)	
 
 	# user_degree vs tag_degree
-	ax = fig.add_subplot(2, 3, 6)
+	ax = fig.add_subplot(2, 3, 3)
 	for k, col in zip(range(n_clusters), colors):
 		my_members = Scores_bothDegree_labels == order_STU[k]
 		cluster_center = Scores_bothDegree_centers[order_STU[k]]	
-		ax.plot(DataPoints[my_members, 3], DataPoints[my_members, 5], 'w',
-				markerfacecolor=col, marker='.')
-		ax.plot(cluster_center[2], cluster_center[3], 'o', markerfacecolor=col,
+		ax.plot(DataPoints[my_members, 3], DataPoints[my_members, 5], 'o', markerfacecolor=col,
 				markeredgecolor='k', markersize=6)
 
-	ax.set_title('user_degree vs tag_degree')
-	label_range = [weight*(i+2) for i in range(10)]
-	ax.set_xticks(label_range)
-	ax.set_xticklabels(label_range)
-	ax.set_yticks(label_range)
-	ax.set_yticklabels(label_range)	
+	ax.set_title('K-Means by Scores & Degrees, user_degree vs tag_degree')
+
+	# PCA 1 vs 2
+	ax = fig.add_subplot(2, 3, 4)
+	for k, col in zip(range(n_clusters), colors):
+		my_members = Scores_labels == k
+		ax.plot(DataPoints[:, 3], DataPoints[:, 5], 'o', markerfacecolor='blue',
+				markeredgecolor='k', markersize=6)
+	ax.set_title('Full Data Set, user_degree vs tag_degree')
+
+	# PCA 1 vs 2
+	ax = fig.add_subplot(2, 3, 5)
+	for k, col in zip(range(n_clusters), colors):
+		my_members = Scores_bothDegree_labels == order_STU[k]
+		ax.plot(X_r[my_members, 0], X_r[my_members, 1], 'o', markerfacecolor=col,
+				markeredgecolor='k', markersize=6)
+	ax.set_title('K-Means by Score & Degrees, PCA compnent 1 vs 2')
+
+	# PCA 1 vs 2
+	ax = fig.add_subplot(2, 3, 6)
+	ax.plot(X_r[:, 0], X_r[:, 1], 'o', markerfacecolor='blue',
+				markeredgecolor='k', markersize=6)
+	ax.set_title('Full Data Set, PCA compnent 1 vs 2')
 
 	####################################################################
-	plt.savefig('../output/Tag_Kmeans_N{}_W3_5.png'.format(n_clusters))
+	plt.savefig('../output/User_Kmeans_N{}_W{}.png'.format(n_clusters, weight))
 	plt.show()
 	####################################################################
-
 
 """
 #################################################################################
@@ -349,5 +284,10 @@ if __name__ == "__main__":
 	# extract data in python list format; NOT np.array
 	Data_list = Data_Extract()
 
-	Gross_K_means(Data_list =Data_list, n_clusters=9, n_init=500, max_iter=500, weight=3.5)
+	Gross_K_means(Data_list =Data_list, n_clusters=8, n_init=500, max_iter=500, weight=3)
+
+
+
+
+
 
